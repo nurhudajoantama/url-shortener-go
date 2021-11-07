@@ -1,0 +1,14 @@
+GET http://localhost:8080/Halo
+
+###
+GET http://localhost:8080/dia
+
+
+###
+PUT http://localhost:8080/api/shorten/5
+Content-Type: application/json
+
+{
+    "short_url":"dia",
+    "long_url":"https://www.youtube.com"
+}
