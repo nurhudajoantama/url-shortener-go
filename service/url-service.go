@@ -1,11 +1,14 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"url-shortener/dto"
+	"url-shortener/entity"
 	"url-shortener/repository"
 
 	"github.com/mashingan/smapping"
+	"gorm.io/gorm"
 )
 
 type urlService struct {
@@ -26,7 +29,7 @@ func NewUrlService(ur repository.UrlRepository) UrlService {
 }
 
 func (s *urlService) GetLongUrl(shortUrl string) (string, error) {
-	url := &repository.Url{}
+	url := &entity.Url{}
 	if _, err := s.urlRepository.FindByShortUrl(shortUrl, url); err != nil {
 		return "", err
 	}
@@ -34,7 +37,16 @@ func (s *urlService) GetLongUrl(shortUrl string) (string, error) {
 }
 
 func (s *urlService) Create(urlDTO *dto.UrlRequestDTO) (*dto.UrlResponseDTO, error) {
-	url := &repository.Url{}
+	url := &entity.Url{}
+
+	if _, err := s.urlRepository.FindByShortUrl(urlDTO.ShortUrl, url); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("url telah terdaftar")
+	}
+
 	if err := smapping.FillStruct(url, smapping.MapFields(urlDTO)); err != nil {
 		return nil, err
 	}
@@ -49,7 +61,7 @@ func (s *urlService) Create(urlDTO *dto.UrlRequestDTO) (*dto.UrlResponseDTO, err
 }
 
 func (s *urlService) Update(id uint64, urlDTO *dto.UrlRequestDTO) (*dto.UrlResponseDTO, error) {
-	url := &repository.Url{}
+	url := &entity.Url{}
 	if _, err := s.urlRepository.FindById(id, url); err != nil {
 		return nil, err
 	}
@@ -68,7 +80,7 @@ func (s *urlService) Update(id uint64, urlDTO *dto.UrlRequestDTO) (*dto.UrlRespo
 }
 
 func (s *urlService) Delete(id uint64) error {
-	url := &repository.Url{}
+	url := &entity.Url{}
 	if _, err := s.urlRepository.FindById(id, url); err != nil {
 		return err
 	}

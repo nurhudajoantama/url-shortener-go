@@ -3,14 +3,12 @@ package main
 import (
 	"url-shortener/config"
 	"url-shortener/handler"
+	"url-shortener/helper"
 	"url-shortener/repository"
 	"url-shortener/service"
 
 	"github.com/gin-gonic/gin"
 )
-
-// KALAU MAU TES PKE BROWSER
-// PKE INCOGNITO MODE
 
 var (
 	database        = config.SetupDatabaseConnection()
@@ -32,6 +30,10 @@ func main() {
 		api.DELETE("/shorten/:id", urlHandler.Delete)
 	}
 	router.GET("/:url", redirectHandler.RedirectUrl)
+
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(404, helper.NotFoundResponse)
+	})
 
 	router.Run(":8080")
 }

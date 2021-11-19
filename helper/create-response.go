@@ -7,6 +7,8 @@ type Response struct {
 	Data    interface{}
 }
 
+var NotFoundResponse Response = CreateErrorResponse("Data yang dicari tidak ditemukan", "not found")
+
 func CreateSuccessResponse(message string, data interface{}) Response {
 	return Response{
 		Success: true,

@@ -30,7 +30,7 @@ func (h *redirectHandler) RedirectUrl(c *gin.Context) {
 	longUrl, err := h.urlService.GetLongUrl(reqShortUrl)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, helper.CreateErrorResponse("Data not found", err.Error()))
+			c.JSON(http.StatusNotFound, helper.NotFoundResponse)
 			return
 		}
 		c.JSON(http.StatusInternalServerError, helper.CreateErrorResponse("Error", err.Error()))
