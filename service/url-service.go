@@ -16,10 +16,11 @@ type urlService struct {
 }
 
 type UrlService interface {
-	GetLongUrl(shortUrl string) (string, error)
-	Create(urlDTO *dto.UrlRequestDTO) (*dto.UrlResponseDTO, error)
-	Update(id uint64, urlDTO *dto.UrlRequestDTO) (*dto.UrlResponseDTO, error)
-	Delete(id uint64) error
+	GetLongUrl(string) (string, error)
+	IsDuplicateUrl(string) bool
+	Create(*dto.UrlRequestDTO) (*entity.Url, error)
+	Update(uint64, *dto.UrlRequestDTO) (*entity.Url, error)
+	Delete(uint64) error
 }
 
 func NewUrlService(ur repository.UrlRepository) UrlService {
@@ -30,58 +31,50 @@ func NewUrlService(ur repository.UrlRepository) UrlService {
 
 func (s *urlService) GetLongUrl(shortUrl string) (string, error) {
 	url := &entity.Url{}
-	if _, err := s.urlRepository.FindByShortUrl(shortUrl, url); err != nil {
+	if err := s.urlRepository.FindByShortUrl(shortUrl, url); err != nil {
 		return "", err
 	}
 	return url.LongUrl, nil
 }
 
-func (s *urlService) Create(urlDTO *dto.UrlRequestDTO) (*dto.UrlResponseDTO, error) {
+func (s *urlService) IsDuplicateUrl(shortUrl string) bool {
 	url := &entity.Url{}
-
-	if _, err := s.urlRepository.FindByShortUrl(urlDTO.ShortUrl, url); err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-	} else {
-		return nil, fmt.Errorf("url telah terdaftar")
+	err := s.urlRepository.FindByShortUrl(shortUrl, url)
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+		return false
 	}
-
-	if err := smapping.FillStruct(url, smapping.MapFields(urlDTO)); err != nil {
-		return nil, err
-	}
-	if _, err := s.urlRepository.Create(url); err != nil {
-		return nil, err
-	}
-	response := &dto.UrlResponseDTO{}
-	if err := smapping.FillStruct(response, smapping.MapFields(url)); err != nil {
-		return nil, err
-	}
-	return response, nil
+	return true
 }
 
-func (s *urlService) Update(id uint64, urlDTO *dto.UrlRequestDTO) (*dto.UrlResponseDTO, error) {
+func (s *urlService) Create(urlDTO *dto.UrlRequestDTO) (*entity.Url, error) {
 	url := &entity.Url{}
-	if _, err := s.urlRepository.FindById(id, url); err != nil {
+
+	if err := smapping.FillStruct(url, smapping.MapFields(urlDTO)); err != nil {
+		return nil, err
+	}
+	if err := s.urlRepository.Create(url); err != nil {
+		return nil, err
+	}
+	return url, nil
+}
+
+func (s *urlService) Update(id uint64, urlDTO *dto.UrlRequestDTO) (*entity.Url, error) {
+	url := &entity.Url{}
+	if err := s.urlRepository.FindById(id, url); err != nil {
 		return nil, err
 	}
 	if err := smapping.FillStruct(url, smapping.MapFields(urlDTO)); err != nil {
 		return nil, err
 	}
-	if _, err := s.urlRepository.Update(url); err != nil {
+	if err := s.urlRepository.Update(url); err != nil {
 		return nil, err
 	}
-	response := &dto.UrlResponseDTO{}
-	if err := smapping.FillStruct(response, smapping.MapFields(url)); err != nil {
-		return nil, err
-	}
-
-	return response, nil
+	return url, nil
 }
 
 func (s *urlService) Delete(id uint64) error {
 	url := &entity.Url{}
-	if _, err := s.urlRepository.FindById(id, url); err != nil {
+	if err := s.urlRepository.FindById(id, url); err != nil {
 		return err
 	}
 	if err := s.urlRepository.Delete(url); err != nil {

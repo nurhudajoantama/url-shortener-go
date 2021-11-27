@@ -15,7 +15,7 @@ type redirectHandler struct {
 }
 
 type RedirectHandler interface {
-	RedirectUrl(c *gin.Context)
+	RedirectUrl(*gin.Context)
 }
 
 func NewRedirectHandler(us service.UrlService) RedirectHandler {

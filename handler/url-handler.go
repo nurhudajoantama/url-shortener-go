@@ -8,6 +8,7 @@ import (
 	"url-shortener/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mashingan/smapping"
 )
 
 type urlHandler struct {
@@ -15,9 +16,9 @@ type urlHandler struct {
 }
 
 type UrlHandler interface {
-	Create(c *gin.Context)
-	Update(c *gin.Context)
-	Delete(c *gin.Context)
+	Create(*gin.Context)
+	Update(*gin.Context)
+	Delete(*gin.Context)
 }
 
 func NewUrlHandler(service service.UrlService) UrlHandler {
@@ -28,12 +29,21 @@ func NewUrlHandler(service service.UrlService) UrlHandler {
 
 func (h *urlHandler) Create(c *gin.Context) {
 	urlDto := &dto.UrlRequestDTO{}
-	if err := c.ShouldBind(&urlDto); err != nil {
+	if err := c.ShouldBind(urlDto); err != nil {
 		c.JSON(http.StatusBadRequest, helper.CreateErrorResponse("error", err.Error()))
 		return
 	}
 
-	response, err := h.urlService.Create(urlDto)
+	if duplicate := h.urlService.IsDuplicateUrl(urlDto.ShortUrl); duplicate {
+		c.JSON(http.StatusBadRequest, helper.CreateErrorResponse("error", "Short Url telah terdaftar"))
+		return
+	}
+
+	url, err := h.urlService.Create(urlDto)
+
+	response := &dto.UrlResponseDTO{}
+	smapping.FillStruct(response, smapping.MapFields(url))
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, helper.CreateErrorResponse("error", err.Error()))
 		return
@@ -43,20 +53,28 @@ func (h *urlHandler) Create(c *gin.Context) {
 }
 
 func (h *urlHandler) Update(c *gin.Context) {
-	urlDto := &dto.UrlRequestDTO{}
-
 	id, err := strconv.ParseUint(c.Param("id"), 0, 0)
 	if err != nil {
 		c.JSON(http.StatusNotFound, helper.CreateErrorResponse("Data tidak ditemukan", "Not Found"))
 		return
 	}
 
+	urlDto := &dto.UrlRequestDTO{}
 	if err := c.ShouldBind(&urlDto); err != nil {
 		c.JSON(http.StatusBadRequest, helper.CreateErrorResponse("error", err.Error()))
 		return
 	}
 
-	response, err := h.urlService.Update(id, urlDto)
+	if duplicate := h.urlService.IsDuplicateUrl(urlDto.ShortUrl); duplicate {
+		c.JSON(http.StatusBadRequest, helper.CreateErrorResponse("error", "Short Url telah terdaftar"))
+		return
+	}
+
+	url, err := h.urlService.Update(id, urlDto)
+
+	response := &dto.UrlResponseDTO{}
+	smapping.FillStruct(response, smapping.MapFields(url))
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, helper.CreateErrorResponse("error", err.Error()))
 		return
@@ -67,7 +85,6 @@ func (h *urlHandler) Update(c *gin.Context) {
 }
 
 func (h *urlHandler) Delete(c *gin.Context) {
-
 	id, err := strconv.ParseUint(c.Param("id"), 0, 0)
 	if err != nil {
 		c.JSON(http.StatusNotFound, helper.CreateErrorResponse("Data tidak ditemukan", "Not Found"))
